@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DHL Express Tracking</title>
+<style>
+  body{font-family:Arial,sans-serif;margin:0;background:#f7f7f7;color:#222}
+  .header{background:#ffcc00;padding:15px;display:flex;align-items:center;justify-content:space-between}
+  .logo{font-size:20px;font-weight:bold;color:#d40511}
+  .status-badge{background:#fff;padding:6px 12px;border-radius:20px;font-size:14px;color:green;font-weight:bold}
+  .box{max-width:880px;margin:34px auto;background:#fff;border-radius:12px;box-shadow:0 0 8px rgba(0,0,0,.08);padding:22px}
+
+  .input-row{display:flex;gap:8px;margin-top:12px}
+  .input-row input{flex:1;padding:12px;border:1px solid #d9d9d9;border-radius:8px;font-size:16px}
+  .input-row button{padding:12px 18px;border:0;background:#d40511;color:#fff;font-weight:600;border-radius:8px;cursor:pointer}
+
+  .pill{display:none;margin-top:14px;padding:12px;border-radius:8px;font-weight:700}
+  #status{background:#e8f5e9;border:1px solid #c8e6c9;color:#2e7d32}
+  #eta{background:#fff3cd;border:1px solid #ffeeba;color:#856404}
+
+  /* history table (classic view) */
+  table.history{margin-top:16px;width:100%;border-collapse:collapse;display:none}
+  .history th,.history td{border:1px solid #e6e6e6;padding:10px;font-size:14px}
+  .history th{background:#f5f5f5;text-align:left}
+
+  /* --- Shipping update timeline (like your screenshot) --- */
+  .updates-wrap{margin-top:18px;display:none}
+  .updates-title{font-weight:800;margin-bottom:8px}
+  .timeline{position:relative;list-style:none;margin:0;padding:0 0 0 26px}
+  .timeline::before{content:"";position:absolute;left:8px;top:0;bottom:0;width:2px;background:#e2e2e2}
+  .event{position:relative;margin:18px 0}
+  .event::before{
+    content:"";position:absolute;left:-1px;top:4px;width:12px;height:12px;border-radius:50%;
+    background:#bbb;border:2px solid #fff;box-shadow:0 0 0 2px #e2e2e2;
+  }
+  .event.current{font-weight:700}
+  .event.current::before{background:#111;box-shadow:0 0 0 2px #1112}
+  .event.muted{opacity:.55}
+  .event .when{display:block;font-size:12px;color:#666;margin-top:4px}
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">DHL Express</div>
+    <div class="status-badge">● System Operational</div>
+  </div>
+
+  <div class="box">
+    <h2>Track Your Shipment</h2>
+    <p>Enter your tracking number below to see the latest status and shipment progress.</p>
+
+    <div class="input-row">
+      <input id="tn" placeholder="Enter tracking number" autocomplete="off"/>
+      <button onclick="track()">Track</button>
+    </div>
+
+    <div id="status" class="pill">Status: In Transit 🚚</div>
+    <div id="eta" class="pill">Estimated delivery: 03 Sep 2025 – End of Day</div>
+
+    <!-- classic table history (optional to keep) -->
+    <table id="history" class="history">
+      <thead>
+        <tr><th>Date</th><th>Time</th><th>Location</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>01 Sep 2025</td><td>08:45 AM</td><td>New York, NY, USA</td><td>Shipment picked up</td></tr>
+        <tr><td>01 Sep 2025</td><td>01:30 PM</td><td>New York, NY, USA</td><td>Departed Facility</td></tr>
+        <tr><td>02 Sep 2025</td><td>09:50 AM</td><td>Memphis, TN, USA</td><td>Arrived at Facility</td></tr>
+        <tr><td>02 Sep 2025</td><td>02:15 PM</td><td>Memphis, TN, USA</td><td>Departed Facility</td></tr>
+        <tr><td>03 Sep 2025</td><td>06:40 AM</td><td>Baton Rouge, LA, USA</td><td>Arrived at Destination Facility</td></tr>
+        <tr><td>03 Sep 2025</td><td>10:30 AM</td><td>Baton Rouge, LA, USA</td><td>With delivery courier</td></tr>
+        <tr><td>03 Sep 2025</td><td>01:15 PM</td><td>Baton Rouge, LA, USA</td><td>Out for Delivery 🚚</td></tr>
+      </tbody>
+    </table>
+
+    <!-- shipping updates timeline (screenshot style) -->
+    <div id="updates" class="updates-wrap">
+      <div class="updates-title">Shipping update</div>
+      <ul class="timeline">
+        <li class="event current">
+          Package left sorting center of origin.
+          <span class="when">Sep 01, 01:30 PM GMT-04:00 — New York, NY, USA</span>
+        </li>
+        <li class="event muted">
+          Package received by sorting center of origin.
+          <span class="when">Sep 01, 09:55 AM GMT-04:00 — New York, NY, USA</span>
+        </li>
+        <li class="event muted">
+          Package received by collection warehouse.
+          <span class="when">Sep 01, 08:10 AM GMT-04:00 — New York, NY, USA</span>
+        </li>
+        <li class="event muted">
+          Your package is currently being prepared.
+          <span class="when">Aug 31, 06:20 PM GMT-04:00 — New York, NY, USA</span>
+        </li>
+        <li class="event muted">
+          Your order has been successfully created.
+          <span class="when">Aug 31, 06:05 PM GMT-04:00 — New York, NY, USA</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+<script>
+  // only this tracking number reveals the details
+  const VALID = "3214567890";
+
+  function track(){
+    const val = document.getElementById("tn").value.trim();
+    const status = document.getElementById("status");
+    const eta = document.getElementById("eta");
+    const history = document.getElementById("history");
+    const updates = document.getElementById("updates");
+
+    if(val === VALID){
+      status.style.display = "block";
+      status.textContent = "Status: In Transit 🚚";
+      eta.style.display = "block";
+      history.style.display = "table";
+      updates.style.display = "block";
+    }else if(val){
+      status.style.display = "block";
+      status.textContent = "⚠ Tracking number not found.";
+      eta.style.display = "none";
+      history.style.display = "none";
+      updates.style.display = "none";
+    }else{
+      status.style.display = "block";
+      status.textContent = "⚠ Please enter a valid tracking number.";
+      eta.style.display = "none";
+      history.style.display = "none";
+      updates.style.display = "none";
+    }
+  }
+</script>
+</body>
+</html>
